@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 
 .idea
+training_checkpoints
+trained_model
 
 # Distribution / packaging
 .Python
