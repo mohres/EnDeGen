@@ -181,7 +181,8 @@ def text_from_ids(ids_):
     return tf.strings.reduce_join(chars_from_ids(ids_), axis=-1).numpy()
 
 
-"""
+"""### The prediction task
+
 Given a character, or a sequence of characters, what is the most probable next character? This is the task you're training the model to perform. The input to the model will be a sequence of characters, and you train the model to predict the output—the following character at each time step.
 
 Since RNNs maintain an internal state that depends on the previously seen elements, given all the characters computed until this moment, what is the next character?
@@ -271,5 +272,41 @@ class CharacterLanguageModel(tf.keras.Model):
             return x, states
         else:
             return x
+
+
+def train_model(model, dataset, epochs, checkpoint_dir):
+    """
+    Train the model.
+
+    Args:
+        model (tf.keras.Model): The model to train.
+        dataset (tf.data.Dataset): The preprocessed training dataset.
+        epochs (int): Number of training epochs.
+        checkpoint_dir (str): Directory to save checkpoints.
+
+    Returns:
+        The training history.
+    """
+    loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
+    model.compile(optimizer="adam", loss=loss)
+
+    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_prefix, save_weights_only=True
+    )
+
+    history = model.fit(dataset, epochs=epochs, callbacks=[checkpoint_callback])
+    return history
+
+
+def save_model(model, output_path):
+    """
+    Save the trained model to a file.
+
+    Args:
+        model (tf.keras.Model): The trained model.
+        output_path (str): Path to save the model file.
+    """
+    model.save(output_path)
 
 
