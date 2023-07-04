@@ -393,3 +393,27 @@ def generate_text(one_step_model, start_string, num_generate, silent=True):
     return generated_text
 
 
+if __name__ == "__main__":
+    temperature = 1.0
+    vocab_size = len(ids_from_chars.get_vocabulary())
+    embedding_dim = 256
+    rnn_units = 1024
+    epochs = 10
+    checkpoint_dir = "../training_checkpoints"
+    output_path = "../trained_model"
+
+    # Configure the model
+    model = CharacterLanguageModel(vocab_size, embedding_dim, rnn_units)
+
+    # Train the model
+    history = train_model(model, dataset, epochs, checkpoint_dir)
+
+    # Save the trained model
+    save_model(model, output_path)
+
+    one_step_model = OneStep(model, chars_from_ids, ids_from_chars, temperature)
+    # Usage example:
+    start_string = "All:"
+    num_generate = 1000
+
+    generated_text = generate_text(one_step_model, start_string, num_generate, silent=False)
