@@ -180,3 +180,96 @@ def text_from_ids(ids_):
     """
     return tf.strings.reduce_join(chars_from_ids(ids_), axis=-1).numpy()
 
+
+"""
+Given a character, or a sequence of characters, what is the most probable next character? This is the task you're training the model to perform. The input to the model will be a sequence of characters, and you train the model to predict the output—the following character at each time step.
+
+Since RNNs maintain an internal state that depends on the previously seen elements, given all the characters computed until this moment, what is the next character?
+
+### Create training examples and targets
+
+Next divide the text into example sequences. Each input sequence will contain `seq_length` characters from the text.
+
+For each input sequence, the corresponding targets contain the same length of text, except shifted one character to the right.
+
+So break the text into chunks of `seq_length+1`. For example, say `seq_length` is 4 and our text is "Hello". The input sequence would be "Hell", and the target sequence "ello".
+
+First use the `tf.data.Dataset.from_tensor_slices` function to convert the text vector into a stream of character indices.
+"""
+# Parameters
+SEQ_LENGTH = 100
+BATCH_SIZE = 64
+BUFFER_SIZE = 10000
+
+
+def create_dataset(text, seq_length, batch_size, buffer_size):
+    """Creates a dataset of input-output pairs for training the model.
+
+    Args:
+        text (str): The input text.
+        seq_length (int): The sequence length.
+        batch_size (int): The batch size.
+
+    Returns:
+        tf.data.Dataset: The dataset containing input-output pairs.
+    """
+    vocab = sorted(set(text))
+    ids_from_chars = tf.keras.layers.StringLookup(vocabulary=vocab, mask_token=None)
+    all_ids = ids_from_chars(tf.strings.unicode_split(text, "UTF-8"))
+    sequences = tf.data.Dataset.from_tensor_slices(all_ids).batch(
+        seq_length + 1, drop_remainder=True
+    )
+    dataset = sequences.map(split_input_target)
+    # Create training batches
+    # Buffer size to shuffle the dataset. (TF data is designed to work with possibly infinite sequences, so
+    # it doesn't attempt to shuffle the entire sequence in memory. Instead, it maintains a buffer in which
+    # it shuffles elements).
+    dataset = (
+        dataset.shuffle(buffer_size)
+        .batch(batch_size, drop_remainder=True)
+        .prefetch(tf.data.experimental.AUTOTUNE)
+    )
+    return dataset
+
+
+def split_input_target(sequence):
+    """Splits a sequence into input and target sequences.
+
+    Args:
+        sequence (tf.Tensor): The input sequence.
+
+    Returns:
+        tuple: A tuple containing the input and target sequences.
+    """
+    input_text = sequence[:-1]
+    target_text = sequence[1:]
+    return input_text, target_text
+
+
+# Create dataset
+dataset = create_dataset(text, SEQ_LENGTH, BATCH_SIZE, BUFFER_SIZE)
+
+
+# Build The Model
+class CharacterLanguageModel(tf.keras.Model):
+    """character-level language modeling"""
+    def __init__(self, vocab_size, embedding_dim, rnn_units):
+        super().__init__(self)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
+        self.gru = tf.keras.layers.GRU(
+            rnn_units, return_sequences=True, return_state=True
+        )
+        self.dense = tf.keras.layers.Dense(vocab_size)
+
+    def call(self, inputs, states=None, return_state=False, training=False):
+        x = self.embedding(inputs, training=training)
+        if states is None:
+            states = self.gru.get_initial_state(x)
+        x, states = self.gru(x, initial_state=states, training=training)
+        x = self.dense(x, training=training)
+        if return_state:
+            return x, states
+        else:
+            return x
+
+
