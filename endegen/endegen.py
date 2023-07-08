@@ -1,7 +1,11 @@
+import logging
 import os
 import time
 
 import tensorflow as tf
+
+logging.basicConfig(level=logging.INFO,
+                    format='\033[94m%(asctime)s - %(levelname)s - %(message)s\033[0m')
 
 
 def download_data(url, filename):
@@ -39,7 +43,7 @@ def display_text_length(text):
     Args:
         text (str): The text to compute the length of.
     """
-    print(f"Length of text: {len(text)} characters")
+    logging.info(f"Length of text: {len(text)} characters")
 
 
 def display_n_characters(text, n):
@@ -49,7 +53,7 @@ def display_n_characters(text, n):
         text (str): The text to display the characters from.
         n (int): The number of characters to display.
     """
-    print(text[:n])
+    logging.info(text[:n])
 
 
 def get_unique_characters(text):
@@ -80,7 +84,7 @@ text = read_text_from_file(path_to_file)
 
 # Get the number of unique characters
 vocab = get_unique_characters(text)
-# print(f"{len(vocab)} unique characters")
+# logging.info(f"{len(vocab)} unique characters")
 
 
 """## Process the text
@@ -387,8 +391,8 @@ def generate_text(one_step_model, start_string, num_generate, silent=True):
     generated_text = result[0].numpy().decode("utf-8")
 
     if not silent:
-        print(f"Run time: {end_time - start_time}")
-        print(f"Generated Text: {generated_text}")
+        logging.info(f"Run time: {end_time - start_time}")
+        logging.info(f"Generated Text: {generated_text}")
 
     return generated_text
 
