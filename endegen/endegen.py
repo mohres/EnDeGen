@@ -273,42 +273,6 @@ class CharacterLanguageModel(tf.keras.Model):
             return x
 
 
-def train_model(model, dataset, epochs, checkpoint_dir):
-    """
-    Train the model.
-
-    Args:
-        model (tf.keras.Model): The model to train.
-        dataset (tf.data.Dataset): The preprocessed training dataset.
-        epochs (int): Number of training epochs.
-        checkpoint_dir (str): Directory to save checkpoints.
-
-    Returns:
-        The training history.
-    """
-    loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
-    model.compile(optimizer="adam", loss=loss)
-
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_prefix, save_weights_only=True
-    )
-
-    history = model.fit(dataset, epochs=epochs, callbacks=[checkpoint_callback])
-    return history
-
-
-def save_model(model, output_path):
-    """
-    Save the trained model to a file.
-
-    Args:
-        model (tf.keras.Model): The trained model.
-        output_path (str): Path to save the model file.
-    """
-    model.save(output_path)
-
-
 """
 The simplest way to generate text with this model is to run it in a loop, and keep track of the model's internal state as you execute it.
 
@@ -397,23 +361,89 @@ def generate_text(one_step_model, start_string, num_generate, silent=True):
     return generated_text
 
 
+# Advanced: Customized Training
+# The training procedure provided above is simple but lacks control. It relies on teacher-forcing, which prevents
+# the model from learning to recover from mistakes by not exposing it to bad predictions.
+
+# Now, let's move on to implementing the training loop after understanding how to manually run the model.
+# This will serve as a starting point if you wish to incorporate curriculum learning to improve the stability
+# of the model's open-loop output.
+
+# The crucial component of a custom training loop is the train step function.
+
+# To track the gradients, use tf.GradientTape. For more information, refer to the eager execution guide.
+
+# The basic procedure involves:
+
+# 1. Executing the model and calculating the loss within a tf.GradientTape.
+# 2. Determining the updates and applying them to the model using the optimizer.
+
+class StableTrainingLoop(CharacterLanguageModel):
+    @tf.function
+    def train_step(self, inputs):
+        """Performs a single training step.
+
+        Args:
+            inputs: The input data batch.
+
+        Returns:
+            A dictionary containing the loss value.
+        """
+        inputs, labels = inputs
+        with tf.GradientTape() as tape:
+            predictions = self(inputs, training=True)
+            loss = self.loss(labels, predictions)
+        grads = tape.gradient(loss, model.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
+        return {"loss": loss}
+
+
 if __name__ == "__main__":
-    temperature = 1.0
+    temperature = 0.9
     vocab_size = len(ids_from_chars.get_vocabulary())
     embedding_dim = 256
     rnn_units = 1024
-    epochs = 10
+    EPOCHS = 30
     checkpoint_dir = "../training_checkpoints"
     output_path = "../trained_model"
+    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
-    # Configure the model
-    model = CharacterLanguageModel(vocab_size, embedding_dim, rnn_units)
+    model = StableTrainingLoop(
+        vocab_size=vocab_size,
+        embedding_dim=embedding_dim,
+        rnn_units=rnn_units,
+    )
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    )
+    model.fit(dataset, epochs=1)
 
-    # Train the model
-    history = train_model(model, dataset, epochs, checkpoint_dir)
+    mean = tf.metrics.Mean()
 
-    # Save the trained model
-    save_model(model, output_path)
+    for epoch in range(1, EPOCHS+1):
+        start = time.time()
+
+        mean.reset_states()
+        for batch_n, (inp, target) in enumerate(dataset):
+            logs = model.train_step([inp, target])
+            mean.update_state(logs["loss"])
+
+            if batch_n % 50 == 0:
+                template = (
+                    f"Epoch {epoch} Batch {batch_n} Loss {logs['loss']:.4f}"
+                )
+                logging.info(template)
+
+        # saving (checkpoint) the model every 5 epochs
+        if epoch % 5 == 0:
+            model.save_weights(checkpoint_prefix.format(epoch=epoch))
+
+        logging.info(f"Epoch {epoch} Loss: {mean.result().numpy():.4f}")
+        logging.info(f"Time taken for 1 epoch {time.time() - start:.2f} sec")
+
+    model.save_weights(checkpoint_prefix.format(epoch=EPOCHS))
 
     one_step_model = OneStep(model, chars_from_ids, ids_from_chars, temperature)
     # Usage example:
