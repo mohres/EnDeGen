@@ -4,11 +4,12 @@ EnDeGen is a project that focuses on generating text using the Encoder-Decoder a
 
 ## Overview
 
-EnDeGen is designed to generate text by learning patterns from a given dataset and predicting the next characters or words in a sequence. It utilizes the Encoder-Decoder model, which consists of two components:
+EnDeGen is designed to generate text by learning patterns from a given dataset and predicting the next characters in a sequence. It utilizes the Encoder-Decoder model, which consists of two components:
 
-* **Encoder**: The Encoder takes the input sequence and processes it to capture the meaningful representation or context of the input. In this project, we use an RNN-based Encoder to encode the input sequence.
+* The **CharacterLanguageModel** class is responsible for `encoding` the input sequence. It takes the input characters, embeds them using an embedding layer, and passes them through a GRU (Gated Recurrent Unit) layer. The GRU layer processes the input sequence and returns the hidden states. Finally, the output of the GRU layer is passed through a dense layer to obtain the encoded representation of the input sequence.
 
-* **Decoder**: The Decoder takes the output of the Encoder and generates the target sequence, character by character or word by word. The Decoder also uses an RNN-based architecture, trained to predict the next character or word based on the context received from the Encoder.
+* The **OneStep** class is responsible for `decoding` the encoded representation and generating the next character in the sequence. It takes the encoded representation, feeds it into the language model, and obtains the predicted logits for the next character. It then applies a `temperature` parameter to control the randomness of the predictions and applies a mask to prevent the generation of unknown characters. Finally, it samples from the predicted logits to generate the next character and returns it along with the model state.
+
 
 
 ## Example Result 
