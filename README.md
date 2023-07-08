@@ -11,6 +11,40 @@ EnDeGen is designed to generate text by learning patterns from a given dataset a
 * **Decoder**: The Decoder takes the output of the Encoder and generates the target sequence, character by character or word by word. The Decoder also uses an RNN-based architecture, trained to predict the next character or word based on the context received from the Encoder.
 
 
+## Example Result 
+**[After training for 30 epochs, the model was able to generate the following text]**
+
+All: How nigh should do boys where no harm to keep
+Than younger conference was a point of your
+Boint powers. What, will our princely father York?
+Upon my love, think'st thou that I am little
+That go to chastity of our intone humour
+will church the mighty look od all in 
+
+Bolingbroke:
+Be it so I have the let morn of your
+having breath? Of high and lowly me!
+So, fellow, get me heaven, out o'er at Sicilia
+much in placent, all the prisoner to do fight:
+I do remember this be this: he's very little
+That wound this way how touch'd Slones, where you
+will have consumenes to yourself. You talk-worng, would wed both
+He thinks me down to such a party instinct,
+Travelling to practise himself be in love:
+I'll blush your honour.
+
+ISABELLA:
+Which is too careless it and me?
+My grave be loss, that you hither hath a hand,
+And shows good words will maid to see thee dead,
+How doth the queen of Naples him.
+But let it serve to take our foes.
+
+ANTONIO:
+I beseech your parish close by Caling home,
+That his bold hand.
+
+
 ## Contact
 For any questions or inquiries about the project, please reach out to [LinkedIn](https://www.linkedin.com/in/mohres)
 
